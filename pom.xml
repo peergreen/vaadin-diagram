@@ -158,7 +158,7 @@
             <manifestEntries>
               <!-- Package format version - do not change -->
               <Vaadin-Package-Version>1</Vaadin-Package-Version>
-              <Vaadin-Widgetsets>org.peergreen.vaadin.addon.diagram.DiagramWidgetSet</Vaadin-Widgetsets>
+              <Vaadin-Widgetsets>org.peergreen.vaadin.diagram.DiagramWidgetSet</Vaadin-Widgetsets>
             </manifestEntries>
           </archive>
         </configuration>
