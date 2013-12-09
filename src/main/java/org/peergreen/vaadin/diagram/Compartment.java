@@ -58,7 +58,9 @@ public class Compartment extends AbstractElement {
 
     public void setIconUrl(final URL iconUrl) {
         this.iconUrl = iconUrl;
-        this.iconType = iconUrl.toString().substring(iconUrl.toString().lastIndexOf('/') + 1);
+        if (iconUrl != null) {
+            this.iconType = iconUrl.toString().substring(iconUrl.toString().lastIndexOf('/') + 1);
+        }
     }
 
     public String getIconType() {
