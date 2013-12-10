@@ -26,15 +26,23 @@ import org.peergreen.vaadin.diagram.client.DiagramComponentState;
 import org.peergreen.vaadin.diagram.client.IDiagramClientRpc;
 import org.peergreen.vaadin.diagram.client.IDiagramServerRpc;
 
+import com.vaadin.event.dd.DropHandler;
+import com.vaadin.event.dd.DropTarget;
+import com.vaadin.event.dd.TargetDetails;
+import com.vaadin.event.dd.TargetDetailsImpl;
 import com.vaadin.server.ClassResource;
+import com.vaadin.server.PaintException;
+import com.vaadin.server.PaintTarget;
 import com.vaadin.server.Resource;
+import com.vaadin.ui.LegacyComponent;
 import com.vaadin.util.ReflectTools;
 
 /**
  * Diagram component that has to be embedded by applications wanted to use Diagram addon.
  * @author Florent Benoit
  */
-public class Diagram extends com.vaadin.ui.AbstractComponent {
+
+public class Diagram extends com.vaadin.ui.AbstractComponent implements DropTarget, LegacyComponent {
 
     /**
      * Attached elements.
@@ -46,10 +54,19 @@ public class Diagram extends com.vaadin.ui.AbstractComponent {
      */
     private static final long serialVersionUID = 56997080379191390L;
 
+    /**
+     * Drop Handler.
+     */
+    private final DropHandler dropHandler;
+
+
     private final IDiagramClientRpc clientRPC = getRpcProxy(IDiagramClientRpc.class);
 
 	public Diagram() {
-	    // register it
+	    // Drop handler
+        this.dropHandler = new DiagramDropHandler(this);
+        markAsDirty();
+	    // register server RPC
 		registerRpc(new IDiagramServerRpc() {
 
             @Override
@@ -433,4 +450,25 @@ public class Diagram extends com.vaadin.ui.AbstractComponent {
         this.removeListener(LogEvent.class, listener);
     }
 
+    @Override
+    public DropHandler getDropHandler() {
+        return dropHandler;
+    }
+
+    @Override
+    public TargetDetails translateDropTargetDetails(Map<String, Object> clientVariables) {
+        return new TargetDetailsImpl(clientVariables, this);
+    }
+
+    @Override
+    public void paintContent(PaintTarget target) throws PaintException {
+        if (getDropHandler() != null) {
+            getDropHandler().getAcceptCriterion().paint(target);
+        }
+    }
+
+    @Override
+    public void changeVariables(Object source, Map<String, Object> variables) {
+
+    }
 }

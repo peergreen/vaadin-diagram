@@ -37,14 +37,23 @@ import org.peergreen.vaadin.diagram.client.ui.RequireUI;
 import org.peergreen.vaadin.diagram.client.ui.UI;
 import org.peergreen.vaadin.diagram.client.ui.ZoomComponentUI;
 
-import com.google.gwt.canvas.client.Canvas;
+import com.google.gwt.dom.client.CanvasElement;
+import com.google.gwt.dom.client.Document;
 import com.google.gwt.dom.client.Style.Cursor;
+import com.google.gwt.event.dom.client.MouseOutEvent;
+import com.google.gwt.event.dom.client.MouseOutHandler;
+import com.google.gwt.event.dom.client.MouseOverEvent;
+import com.google.gwt.event.dom.client.MouseOverHandler;
 import com.google.gwt.user.client.ui.Widget;
+import com.vaadin.client.ApplicationConnection;
+import com.vaadin.client.Paintable;
+import com.vaadin.client.UIDL;
 import com.vaadin.client.communication.RpcProxy;
 import com.vaadin.client.communication.StateChangeEvent;
 import com.vaadin.client.ui.AbstractComponentConnector;
 import com.vaadin.client.ui.PostLayoutListener;
 import com.vaadin.client.ui.SimpleManagedLayout;
+import com.vaadin.client.ui.dd.VDragAndDropManager;
 import com.vaadin.shared.ui.Connect;
 
 /**
@@ -52,7 +61,7 @@ import com.vaadin.shared.ui.Connect;
  * @author Florent Benoit
  */
 @Connect(Diagram.class)
-public class DiagramConnector extends AbstractComponentConnector implements SimpleManagedLayout, PostLayoutListener  {
+public class DiagramConnector extends AbstractComponentConnector implements SimpleManagedLayout, PostLayoutListener, Paintable {
 
     /**
      * Serial version UID.
@@ -387,6 +396,21 @@ public class DiagramConnector extends AbstractComponentConnector implements Simp
         getWidget().addClickHandler(new DiagramClientClickHandler(this, clientStateModel));
         getWidget().addMouseWheelHandler(new DiagramClientMouseWheelHandler(this, clientStateModel));
 
+        // For the drop, notify the Drag and Drop manager
+        getWidget().addMouseOutHandler(new MouseOutHandler() {
+
+            @Override
+            public void onMouseOut(MouseOutEvent event) {
+                VDragAndDropManager.get().setCurrentDropHandler(null);
+            }
+        });
+        getWidget().addMouseOverHandler(new MouseOverHandler() {
+            @Override
+            public void onMouseOver(MouseOverEvent event) {
+                VDragAndDropManager.get().setCurrentDropHandler(getWidget().getDropHandler());
+            }
+        });
+
         // Key events
         getWidget().addKeyUpHandler(new DiagramClientKeyUpHandler(this, clientStateModel));
 
@@ -466,17 +490,18 @@ public class DiagramConnector extends AbstractComponentConnector implements Simp
      */
     @Override
     protected Widget createWidget() {
-        Canvas canvas = Canvas.createIfSupported();
-        canvas.setStyleName("canvas-widget");
-        return canvas;
+        CanvasElement element = Document.get().createCanvasElement();
+        DiagramWidget diagramWidget = new DiagramWidget(this, element);
+        diagramWidget.setStyleName("canvas-widget");
+        return diagramWidget;
     }
 
     /**
      * Gets the widget.
      */
     @Override
-    public Canvas getWidget() {
-        return (Canvas) super.getWidget();
+    public DiagramWidget getWidget() {
+        return (DiagramWidget) super.getWidget();
     }
 
     /**
@@ -501,9 +526,9 @@ public class DiagramConnector extends AbstractComponentConnector implements Simp
         // Update the height/width
         int newHeight = getWidget().getElement().getOffsetHeight();
         int newWidth = getWidget().getElement().getOffsetWidth();
-        if (getWidget().getCoordinateSpaceHeight() != newHeight || getWidget().getCoordinateSpaceWidth() != newWidth) {
-            getWidget().setCoordinateSpaceHeight(newHeight);
-            getWidget().setCoordinateSpaceWidth(newWidth);
+        if (getWidget().getCanvasElement().getHeight() != newHeight || getWidget().getCanvasElement().getWidth() != newWidth) {
+            getWidget().getCanvasElement().setHeight(newHeight);
+            getWidget().getCanvasElement().setWidth(newWidth);
             getWidget().getContext2d().scale(clientStateModel.getScale(), clientStateModel.getScale());
             getWidget().getContext2d().translate(-clientStateModel.getTranslateX(), -clientStateModel.getTranslateY());
         }
@@ -512,6 +537,12 @@ public class DiagramConnector extends AbstractComponentConnector implements Simp
     @Override
     public void postLayout() {
         redraw();
+    }
+
+    @Override
+    public void updateFromUIDL(UIDL uidl, ApplicationConnection client) {
+        getWidget().setCurrentClient(client);
+
     }
 
 }
