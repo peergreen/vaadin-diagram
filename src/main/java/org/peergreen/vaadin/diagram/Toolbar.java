@@ -14,6 +14,7 @@ import static java.lang.String.format;
 import java.util.Map;
 
 import com.vaadin.event.Transferable;
+import com.vaadin.ui.Alignment;
 import com.vaadin.ui.DragAndDropWrapper;
 import com.vaadin.ui.GridLayout;
 import com.vaadin.ui.Image;
@@ -29,12 +30,16 @@ public class Toolbar extends Window {
     private final GridLayout gridLayout;
 
     public Toolbar(int columns, int rows) {
-        super("Toolbar");
+        super("Tools");
         setModal(false);
         setClosable(false);
         setResizable(false);
         setDraggable(true);
+        addStyleName("diagram-toolbar");
+
         this.gridLayout = new GridLayout(columns, rows);
+        gridLayout.setWidth("100%");
+        gridLayout.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
         setContent(gridLayout);
     }
 
