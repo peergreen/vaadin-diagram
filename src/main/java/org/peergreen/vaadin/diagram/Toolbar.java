@@ -9,12 +9,17 @@
  */
 package org.peergreen.vaadin.diagram;
 
+import static com.vaadin.ui.DragAndDropWrapper.DragStartMode;
 import static java.lang.String.format;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import com.vaadin.event.Transferable;
+import com.vaadin.server.Sizeable;
 import com.vaadin.ui.Alignment;
+import com.vaadin.ui.Component;
 import com.vaadin.ui.DragAndDropWrapper;
 import com.vaadin.ui.GridLayout;
 import com.vaadin.ui.Image;
@@ -27,9 +32,24 @@ import com.vaadin.ui.Window;
  */
 public class Toolbar extends Window {
 
-    private final GridLayout gridLayout;
+    public static final int DEFAULT_NUMBER_OF_COLUMNS = 1;
+    public static final int DEFAULT_DISPLAYED_ROWS = 6;
 
-    public Toolbar(int columns, int rows) {
+    public static final Integer IMAGE_LENGTH = 45;
+    public static final int PADDING = 4;
+
+    private final GridLayout layout;
+    private final int columns;
+    private final int rows;
+    private int imageLength;
+
+    private final List<ToolbarItem> items = new ArrayList<ToolbarItem>();
+
+    public Toolbar() {
+        this(DEFAULT_NUMBER_OF_COLUMNS, DEFAULT_DISPLAYED_ROWS);
+    }
+
+    public Toolbar(int columns, final int rows) {
         super("Tools");
         setModal(false);
         setClosable(false);
@@ -37,34 +57,67 @@ public class Toolbar extends Window {
         setDraggable(true);
         addStyleName("diagram-toolbar");
 
-        this.gridLayout = new GridLayout(columns, rows);
-        gridLayout.setWidth("100%");
-        gridLayout.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
-        setContent(gridLayout);
+        this.columns = columns;
+        this.rows = rows;
+
+        this.layout = new GridLayout(this.columns, 1);
+        layout.setSizeFull();
+        layout.setDefaultComponentAlignment(Alignment.MIDDLE_CENTER);
+        setContent(layout);
+        setImageLength(IMAGE_LENGTH);
+
     }
 
+    public void setImageLength(final int length) {
+        imageLength = length;
+        setWidth(columns * (imageLength + 10), Unit.PIXELS);
+        redraw();
+    }
 
-    public void addEntry(int columnId, int rowId, final ToolbarItem toolbarItem) {
-        Entry entry = new Entry(toolbarItem);
+    public void addEntry(final ToolbarItem item) {
+        items.add(item);
+        addItemInLayout(item);
+    }
+
+    public void removeEntry(ToolbarItem item) {
+        items.remove(item);
+        redraw();
+    }
+
+    private void redraw() {
+        layout.removeAllComponents();
+        for (ToolbarItem item : items) {
+            addItemInLayout(item);
+        }
+    }
+
+    private void addItemInLayout(final ToolbarItem item) {
+        // Append the item as last entry
+        layout.addComponent(createDragEntry(item));
+        layout.setHeight(Math.min(rows, layout.getRows()) * (imageLength + PADDING), Unit.PIXELS);
+    }
+
+    private Component createDragEntry(final ToolbarItem item) {
+        Entry entry = new Entry(item);
         DragAndDropWrapper drag = new DragAndDropWrapper(entry) {
             @Override
             public Transferable getTransferable(final Map<String, Object> variables) {
-                variables.put("component-type", toolbarItem.getName());
+                variables.put("component-type", item.getName());
                 return super.getTransferable(variables);
             }
         };
         drag.setSizeUndefined();
-        drag.setDragStartMode(DragAndDropWrapper.DragStartMode.COMPONENT);
-        gridLayout.addComponent(drag, columnId, rowId);
+        drag.setDragStartMode(DragStartMode.COMPONENT);
+        return drag;
     }
 
 
-    private static class Entry extends Image {
-        private Entry(ToolbarItem toolbarItem) {
-            setSource(toolbarItem.getIconResource());
-            setWidth("45px");
-            setHeight("45px");
-            setDescription(format("%s (%s Wrapper)", toolbarItem.getName(), toolbarItem.getDescription()));
+    private class Entry extends Image {
+        private Entry(ToolbarItem item) {
+            setSource(item.getIconResource());
+            setWidth(imageLength, Unit.PIXELS);
+            setHeight(imageLength, Unit.PIXELS);
+            setDescription(format("%s (%s Wrapper)", item.getName(), item.getDescription()));
         }
     }
 
